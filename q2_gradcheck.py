@@ -28,10 +28,15 @@ def gradcheck_naive(f, x):
         # numerical gradients. Make sure you call random.setstate(rndstate)
         # before calling f(x) each time. This will make it possible
         # to test cost functions with built in randomness later.
-
-        ### YOUR CODE HERE:
-        raise NotImplementedError
-        ### END YOUR CODE
+        prev_x = x[ix]
+        x[ix] = prev_x - h
+        random.setstate(rndstate)
+        fx_left, gr = f(x)
+        x[ix] = prev_x + h
+        random.setstate(rndstate)
+        fx_right, gr = f(x)
+        x[ix] = prev_x
+        numgrad = (fx_right - fx_left) / (2 * h)
 
         # Compare gradients
         reldiff = abs(numgrad - grad[ix]) / max(1, abs(numgrad), abs(grad[ix]))
@@ -68,10 +73,10 @@ def your_sanity_checks():
     your additional tests be graded.
     """
     print "Running your sanity checks..."
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
-
+    quad = lambda x: (np.sum(x), x * 0 + 1)
+    gradcheck_naive(quad, np.array(123.456))      # scalar test
+    gradcheck_naive(quad, np.random.randn(3,))    # 1-D test
+    gradcheck_naive(quad, np.random.randn(4,5))   # 2-D test
 
 if __name__ == "__main__":
     sanity_check()

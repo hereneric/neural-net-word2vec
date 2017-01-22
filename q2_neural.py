@@ -35,13 +35,23 @@ def forward_backward_prop(data, labels, params, dimensions):
     ofs += H * Dy
     b2 = np.reshape(params[ofs:ofs + Dy], (1, Dy))
 
-    ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
-    ### END YOUR CODE
+    data_num = data.shape[0]
+    # forward propagation
+    # compute h of the hidden layer
+    h_vec = sigmoid(np.matmul(data, W1) + b1)
+    # compute y_hat of the output layer
+    y_hat = softmax(np.matmul(h_vec, W2) + b2)
 
-    ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
-    ### END YOUR CODE
+    cost = -np.sum(labels * np.log(y_hat)) / data_num
+
+    # backward propagation
+    # gradient of all parameters, averaged over training examples
+    delta_y = y_hat - labels
+    gradW2 = np.matmul(h_vec.T, delta_y) / data_num
+    gradb2 = np.sum(delta_y, axis=0) / data_num
+    gradq = np.matmul(delta_y, W2.T) * sigmoid_grad(h_vec)
+    gradW1 = np.matmul(data.T, gradq) / data_num
+    gradb1 = np.sum(gradq, axis=0) / data_num
 
     ### Stack gradients (do not modify)
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),
@@ -79,9 +89,18 @@ def your_sanity_checks():
     your additional tests be graded.
     """
     print "Running your sanity checks..."
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    N = 1000
+    dimensions = [5, 3, 5]
+    data = np.random.randn(N, dimensions[0])   # each row will be a datum
+    labels = np.zeros((N, dimensions[2]))
+    for i in xrange(N):
+        labels[i, random.randint(0,dimensions[2]-1)] = 1
+
+    params = np.random.randn((dimensions[0] + 1) * dimensions[1] + (
+        dimensions[1] + 1) * dimensions[2], )
+
+    gradcheck_naive(lambda params:
+        forward_backward_prop(data, labels, params, dimensions), params)
 
 
 if __name__ == "__main__":
