@@ -14,9 +14,8 @@ def normalizeRows(x):
     unit length.
     """
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    length_x = np.linalg.norm(x, axis = 1)[np.newaxis]
+    x /= length_x.T
 
     return x
 
