@@ -14,9 +14,9 @@ def normalizeRows(x):
     unit length.
     """
 
-    length_x = np.linalg.norm(x, axis = 1)[np.newaxis]
-    x /= length_x.T
-
+    length_x = np.linalg.norm(x, axis = 1)
+    # make x matrix before transpose
+    x /= length_x[np.newaxis].T
     return x
 
 
@@ -55,13 +55,15 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     free to reference the code you previously wrote for this
     assignment!
     """
-
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
-
+    # get y hat first
+    y_vec = softmax(np.sum(predicted * outputVectors, axis = 1))
+    cost = -np.log(y_vec[target])
+    # get delta of y
+    y_vec[target] -= 1
+    # compute grad according to q3(a) and q3(b)
+    grad = np.matmul(y_vec[np.newaxis].T, predicted[np.newaxis])
+    gradPred = np.sum(y_vec[np.newaxis] * outputVectors.T, axis = 1)
     return cost, gradPred, grad
-
 
 def getNegativeSamples(target, dataset, K):
     """ Samples K indexes which are not the target """
@@ -93,10 +95,23 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     # wish to match the autograder and receive points!
     indices = [target]
     indices.extend(getNegativeSamples(target, dataset, K))
-
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    # make a copy of the samples 1 to K
+    samples = outputVectors[indices[1:]]
+    # compute some repeatedly-used intermediate variables
+    sigmoid_u0v = sigmoid(np.sum(outputVectors[target] * predicted))
+    sigmoid_samples = sigmoid(-np.matmul(samples, predicted))
+    # cost
+    cost = -np.log(sigmoid_u0v)
+    cost += -np.sum(np.log(sigmoid_samples))
+    # gradients for predicted word
+    gradPred = (sigmoid_u0v - 1.0) * outputVectors[target]
+    gradPred -= np.matmul((sigmoid_samples - 1.0), samples)
+    # gradients for output words
+    grad = np.zeros(outputVectors.shape)
+    grad[target] += (sigmoid_u0v - 1.0) * predicted
+    cache = (1.0 - sigmoid_samples)[np.newaxis].T * predicted
+    for i in xrange(K):
+        grad[indices[i + 1]] += cache[i]
 
     return cost, gradPred, grad
 
@@ -108,7 +123,7 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     Implement the skip-gram model in this function.
 
     Arguments:
-    currrentWord -- a string of the current center word
+    currentWord -- a string of the current center word
     C -- integer, context size
     contextWords -- list of no more than 2*C strings, the context words
     tokens -- a dictionary that maps words to their indices in
@@ -129,9 +144,18 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    # get center word vector
+    current_index = tokens[currentWord]
+    predicted = inputVectors[current_index]
+    # loop over context words
+    for context_word in contextWords:
+        context_index = tokens[context_word]
+        # get the cost and gradients of one word
+        w_cost, w_gradPred, w_grad = word2vecCostAndGradient(predicted,
+            context_index, outputVectors, dataset)
+        # update cost and gradients
+        cost, gradOut = cost + w_cost, gradOut + w_grad
+        gradIn[current_index] += w_gradPred
 
     return cost, gradIn, gradOut
 
@@ -153,9 +177,19 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradIn = np.zeros(inputVectors.shape)
     gradOut = np.zeros(outputVectors.shape)
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    predicted = np.zeros((1, inputVectors.shape[1]))
+    current_index = tokens[currentWord]
+    # sum context vectors to get v hat
+    for context_word in contextWords:
+        context_index = tokens[context_word]
+        predicted += inputVectors[context_index]
+    # get cost and gradients
+    cost, w_gradPred, gradOut = word2vecCostAndGradient(predicted[0],
+        current_index, outputVectors, dataset)
+
+    for context_word in contextWords:
+        context_index = tokens[context_word]
+        gradIn[context_index] += w_gradPred
 
     return cost, gradIn, gradOut
 

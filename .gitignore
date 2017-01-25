@@ -1,5 +1,7 @@
 *.txt
 *.pyc
 *~
+*.png
+*.npy
 !requirements.txt
 .DS_Store
